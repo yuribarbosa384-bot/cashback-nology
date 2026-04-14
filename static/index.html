@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cashback Nology</title>
+    <style>
+        :root {
+            --bg: #f7f1e8;
+            --panel: #fffaf3;
+            --text: #1d1d1b;
+            --accent: #17624a;
+            --accent-dark: #0d3d2d;
+            --line: #dbcdb9;
+            --muted: #6d655c;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+            background:
+                radial-gradient(circle at top left, rgba(23, 98, 74, 0.15), transparent 28%),
+                linear-gradient(180deg, #f6efe5 0%, var(--bg) 100%);
+            color: var(--text);
+            min-height: 100vh;
+            padding: 32px 16px;
+        }
+
+        .container {
+            max-width: 920px;
+            margin: 0 auto;
+            display: grid;
+            gap: 24px;
+        }
+
+        .card {
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: 18px;
+            padding: 24px;
+            box-shadow: 0 14px 34px rgba(29, 29, 27, 0.08);
+        }
+
+        h1, h2 {
+            margin-top: 0;
+        }
+
+        p {
+            color: var(--muted);
+            line-height: 1.5;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 16px;
+            margin-top: 20px;
+        }
+
+        label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        input, select, button {
+            width: 100%;
+            padding: 12px 14px;
+            border-radius: 12px;
+            border: 1px solid var(--line);
+            font: inherit;
+        }
+
+        input:focus, select:focus {
+            outline: 2px solid rgba(23, 98, 74, 0.2);
+            border-color: var(--accent);
+        }
+
+        button {
+            border: none;
+            background: linear-gradient(135deg, var(--accent) 0%, var(--accent-dark) 100%);
+            color: white;
+            font-weight: 700;
+            cursor: pointer;
+            margin-top: 8px;
+        }
+
+        button:hover {
+            filter: brightness(1.03);
+        }
+
+        .result {
+            margin-top: 20px;
+            padding: 18px;
+            border-radius: 14px;
+            background: rgba(23, 98, 74, 0.08);
+            border: 1px solid rgba(23, 98, 74, 0.18);
+            display: none;
+        }
+
+        .result strong {
+            display: block;
+            font-size: 1.4rem;
+            color: var(--accent-dark);
+            margin-bottom: 8px;
+        }
+
+        .error {
+            margin-top: 16px;
+            color: #9f1e1e;
+            font-weight: 600;
+            min-height: 24px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 16px;
+            overflow: hidden;
+        }
+
+        th, td {
+            padding: 12px;
+            border-bottom: 1px solid var(--line);
+            text-align: left;
+        }
+
+        th {
+            color: var(--accent-dark);
+            background: rgba(23, 98, 74, 0.06);
+        }
+
+        .empty {
+            color: var(--muted);
+            margin-top: 12px;
+        }
+
+        @media (max-width: 640px) {
+            body {
+                padding: 16px 12px;
+            }
+
+            .card {
+                padding: 18px;
+            }
+
+            th, td {
+                font-size: 0.92rem;
+                padding: 10px 8px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <section class="card">
+            <h1>Calculadora de Cashback</h1>
+            <p>Informe o tipo de cliente e o valor da compra para consultar o cashback.</p>
+
+            <div class="form-grid">
+                <div>
+                    <label for="tipo">Tipo de cliente</label>
+                    <select id="tipo">
+                        <option value="NORMAL">Normal</option>
+                        <option value="VIP">VIP</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label for="valor">Valor da compra (R$)</label>
+                    <input type="number" id="valor" step="0.01" min="0.01" placeholder="Ex: 600.00">
+                </div>
+            </div>
+
+            <button id="calcular-btn" type="button">Calcular cashback</button>
+            <div class="error" id="erro"></div>
+
+            <div class="result" id="resultado">
+                <strong id="cashback-final"></strong>
+                <div id="resumo-calculo"></div>
+            </div>
+        </section>
+
+        <section class="card">
+            <h2>Historico de consultas do seu IP</h2>
+            <p>As consultas realizadas neste acesso aparecem no historico abaixo.</p>
+
+            <div class="empty" id="historico-vazio">Nenhuma consulta registrada ainda.</div>
+            <table id="historico">
+                <thead>
+                    <tr>
+                        <th>Tipo</th>
+                        <th>Valor</th>
+                        <th>Cashback</th>
+                        <th>Data/Hora</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </section>
+    </div>
+
+    <script>
+        function formatCurrency(value) {
+            return Number(value).toLocaleString("pt-BR", {
+                style: "currency",
+                currency: "BRL"
+            });
+        }
+
+        async function calcular() {
+            const tipo = document.getElementById("tipo").value;
+            const valor = parseFloat(document.getElementById("valor").value);
+            const erroEl = document.getElementById("erro");
+            const resultadoEl = document.getElementById("resultado");
+
+            erroEl.textContent = "";
+            resultadoEl.style.display = "none";
+
+            if (Number.isNaN(valor) || valor <= 0) {
+                erroEl.textContent = "Digite um valor de compra maior que zero.";
+                return;
+            }
+
+            try {
+                const resp = await fetch("/api/calcular", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        tipo_cliente: tipo,
+                        valor: valor,
+                        desconto_percentual: 0
+                    })
+                });
+
+                const data = await resp.json();
+
+                if (!resp.ok) {
+                    erroEl.textContent = data.erro || "Nao foi possivel calcular o cashback.";
+                    return;
+                }
+
+                document.getElementById("cashback-final").textContent =
+                    `Cashback final: ${formatCurrency(data.cashback)}`;
+
+                document.getElementById("resumo-calculo").textContent =
+                    `Consulta realizada para ${data.tipo_cliente} com compra de ${formatCurrency(data.valor_original)}.`;
+
+                resultadoEl.style.display = "block";
+                carregarHistorico();
+            } catch (error) {
+                console.error("Erro:", error);
+                erroEl.textContent = "Erro ao conectar com o servidor.";
+            }
+        }
+
+        async function carregarHistorico() {
+            try {
+                const resp = await fetch("/api/historico");
+                const dados = await resp.json();
+
+                const tbody = document.querySelector("#historico tbody");
+                const vazio = document.getElementById("historico-vazio");
+                tbody.innerHTML = "";
+
+                if (!Array.isArray(dados) || dados.length === 0) {
+                    vazio.style.display = "block";
+                    return;
+                }
+
+                vazio.style.display = "none";
+
+                for (const item of dados) {
+                    const row = tbody.insertRow();
+                    row.insertCell(0).innerText = item.tipo_cliente;
+                    row.insertCell(1).innerText = formatCurrency(item.valor_original);
+                    row.insertCell(2).innerText = formatCurrency(item.cashback);
+                    row.insertCell(3).innerText = item.timestamp;
+                }
+            } catch (error) {
+                console.error("Erro ao carregar historico:", error);
+            }
+        }
+
+        document.getElementById("calcular-btn").addEventListener("click", calcular);
+        carregarHistorico();
+    </script>
+</body>
+</html>
