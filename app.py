@@ -73,6 +73,15 @@ def get_request_ip():
     return request.remote_addr or "desconhecido"
 
 
+def api_response(payload, status=200):
+    response = jsonify(payload)
+    response.status_code = status
+    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+    return response
+
+
 def calcular_cashback(tipo_cliente, valor_original, desconto_percentual):
     tipo_cliente = str(tipo_cliente).upper()
     if tipo_cliente not in TIPOS_CLIENTE_VALIDOS:
@@ -117,7 +126,7 @@ def api_calcular():
     try:
         data = request.get_json(silent=True)
         if not isinstance(data, dict):
-            return jsonify({"erro": "Envie um JSON valido"}), 400
+            return api_response({"erro": "Envie um JSON valido"}, 400)
 
         resultado = calcular_cashback(
             data.get("tipo_cliente"),
@@ -136,7 +145,7 @@ def api_calcular():
         db.session.add(consulta)
         db.session.commit()
 
-        return jsonify(
+        return api_response(
             {
                 "tipo_cliente": resultado["tipo_cliente"],
                 "valor_original": float(resultado["valor_original"]),
@@ -146,10 +155,10 @@ def api_calcular():
             }
         )
     except ValueError as exc:
-        return jsonify({"erro": str(exc)}), 400
+        return api_response({"erro": str(exc)}, 400)
     except Exception as exc:
         app.logger.exception("Erro ao calcular cashback: %s", exc)
-        return jsonify({"erro": "Erro interno"}), 500
+        return api_response({"erro": "Erro interno"}, 500)
 
 
 @app.route("/api/historico", methods=["GET"])
@@ -160,7 +169,7 @@ def api_historico():
         .order_by(Consulta.timestamp.desc())
         .all()
     )
-    return jsonify([consulta.to_dict() for consulta in consultas])
+    return api_response([consulta.to_dict() for consulta in consultas])
 
 
 if __name__ == "__main__":

@@ -212,6 +212,10 @@
             });
         }
 
+        function delay(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
         async function calcular() {
             const tipo = document.getElementById("tipo").value;
             const valor = parseFloat(document.getElementById("valor").value);
@@ -260,9 +264,11 @@
             }
         }
 
-        async function carregarHistorico() {
+        async function carregarHistorico(tentativas = 3) {
             try {
-                const resp = await fetch("/api/historico");
+                const resp = await fetch(`/api/historico?ts=${Date.now()}`, {
+                    cache: "no-store"
+                });
                 const dados = await resp.json();
 
                 const tbody = document.querySelector("#historico tbody");
@@ -285,10 +291,21 @@
                 }
             } catch (error) {
                 console.error("Erro ao carregar historico:", error);
+
+                if (tentativas > 1) {
+                    await delay(1200);
+                    return carregarHistorico(tentativas - 1);
+                }
             }
         }
 
         document.getElementById("calcular-btn").addEventListener("click", calcular);
+        window.addEventListener("pageshow", () => carregarHistorico());
+        document.addEventListener("visibilitychange", () => {
+            if (document.visibilityState === "visible") {
+                carregarHistorico();
+            }
+        });
         carregarHistorico();
     </script>
 </body>
