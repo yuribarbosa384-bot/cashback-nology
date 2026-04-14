@@ -159,7 +159,7 @@
     <div class="container">
         <section class="card">
             <h1>Calculadora de Cashback</h1>
-            <p>Informe o tipo de cliente e o valor da compra para consultar o cashback.</p>
+            <p>Informe o tipo de cliente, o valor da compra e, se houver, o percentual de desconto aplicado.</p>
 
             <div class="form-grid">
                 <div>
@@ -173,6 +173,11 @@
                 <div>
                     <label for="valor">Valor da compra (R$)</label>
                     <input type="number" id="valor" step="0.01" min="0.01" placeholder="Ex: 600.00">
+                </div>
+
+                <div>
+                    <label for="desconto">Desconto (%)</label>
+                    <input type="number" id="desconto" step="0.01" min="0" max="100" value="0" placeholder="Ex: 20">
                 </div>
             </div>
 
@@ -219,6 +224,7 @@
         async function calcular() {
             const tipo = document.getElementById("tipo").value;
             const valor = parseFloat(document.getElementById("valor").value);
+            const desconto = parseFloat(document.getElementById("desconto").value || "0");
             const erroEl = document.getElementById("erro");
             const resultadoEl = document.getElementById("resultado");
 
@@ -227,6 +233,11 @@
 
             if (Number.isNaN(valor) || valor <= 0) {
                 erroEl.textContent = "Digite um valor de compra maior que zero.";
+                return;
+            }
+
+            if (Number.isNaN(desconto) || desconto < 0 || desconto > 100) {
+                erroEl.textContent = "Digite um desconto entre 0% e 100%.";
                 return;
             }
 
@@ -239,7 +250,7 @@
                     body: JSON.stringify({
                         tipo_cliente: tipo,
                         valor: valor,
-                        desconto_percentual: 0
+                        desconto_percentual: desconto
                     })
                 });
 
@@ -254,7 +265,7 @@
                     `Cashback final: ${formatCurrency(data.cashback)}`;
 
                 document.getElementById("resumo-calculo").textContent =
-                    `Consulta realizada para ${data.tipo_cliente} com compra de ${formatCurrency(data.valor_original)}.`;
+                    `Valor final considerado: ${formatCurrency(data.valor_final)} para ${data.tipo_cliente} com desconto de ${desconto.toLocaleString("pt-BR")}%.`;
 
                 resultadoEl.style.display = "block";
                 carregarHistorico();

@@ -15,6 +15,8 @@ Aplicacao em Flask com frontend estatico em JavaScript para calculo de cashback 
 - `static/index.html`: frontend estatico.
 - `requirements.txt`: dependencias do projeto.
 
+O frontend permite informar desconto de forma opcional para reproduzir os cenarios do desafio. Quando nenhum desconto e informado, o calculo considera 0%.
+
 ## Execucao local
 
 ```powershell
