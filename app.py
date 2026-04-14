@@ -1,6 +1,7 @@
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
-from datetime import datetime
+from datetime import datetime, timezone
 import os
+from zoneinfo import ZoneInfo
 
 from flask import Flask, jsonify, request
 from flask_sqlalchemy import SQLAlchemy
@@ -31,6 +32,17 @@ db = SQLAlchemy(app)
 
 TIPOS_CLIENTE_VALIDOS = {"NORMAL", "VIP"}
 CENT = Decimal("0.01")
+APP_TIMEZONE = ZoneInfo(os.getenv("APP_TIMEZONE", "America/Sao_Paulo"))
+
+
+def utc_now_naive():
+    return datetime.now(timezone.utc).replace(tzinfo=None)
+
+
+def format_local_timestamp(value):
+    if value.tzinfo is None:
+        value = value.replace(tzinfo=timezone.utc)
+    return value.astimezone(APP_TIMEZONE).strftime("%d/%m/%Y %H:%M:%S")
 
 
 class Consulta(db.Model):
@@ -41,7 +53,7 @@ class Consulta(db.Model):
     desconto_percentual = db.Column(db.Numeric(5, 2), nullable=False)
     valor_final = db.Column(db.Numeric(10, 2), nullable=False)
     cashback = db.Column(db.Numeric(10, 2), nullable=False)
-    timestamp = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    timestamp = db.Column(db.DateTime, default=utc_now_naive, nullable=False)
 
     def to_dict(self):
         return {
@@ -50,7 +62,7 @@ class Consulta(db.Model):
             "desconto_percentual": float(self.desconto_percentual),
             "valor_final": float(self.valor_final),
             "cashback": float(self.cashback),
-            "timestamp": self.timestamp.strftime("%d/%m/%Y %H:%M:%S"),
+            "timestamp": format_local_timestamp(self.timestamp),
         }
 
 
